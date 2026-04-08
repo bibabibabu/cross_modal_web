@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cross-Modal Visible-Infrared Object Detection System</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+</head>
+<body>
+  <main class="page">
+    <section class="hero card">
+      <h1>Cross-Modal Visible-Infrared Object Detection System</h1>
+      <p class="subtitle">Undergraduate Thesis Demonstration Platform for RGB, Infrared, and Fusion-Based Detection</p>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="alerts">
+            {% for category, message in messages %}
+              <div class="alert {{ category }}">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      <form id="detect-form" class="upload-form" method="post" action="{{ url_for('detect') }}" enctype="multipart/form-data">
+        <div class="upload-grid">
+          <div class="upload-card">
+            <h3>Visible RGB Image</h3>
+            <label class="upload-box" for="rgb_image">
+              <input type="file" id="rgb_image" name="rgb_image" accept="image/*" required />
+              <span>Select RGB image</span>
+            </label>
+            <img id="rgb-preview" class="preview" alt="RGB preview" />
+          </div>
+
+          <div class="upload-card">
+            <h3>Infrared Image</h3>
+            <label class="upload-box" for="ir_image">
+              <input type="file" id="ir_image" name="ir_image" accept="image/*" required />
+              <span>Select IR image</span>
+            </label>
+            <img id="ir-preview" class="preview" alt="Infrared preview" />
+          </div>
+        </div>
+
+        <button type="submit" class="btn-primary" id="submit-btn">Start Detection</button>
+      </form>
+
+      <div class="loading" id="loading-indicator" aria-live="polite">
+        <div class="spinner"></div>
+        <span>Running detection pipelines, please wait...</span>
+      </div>
+    </section>
+  </main>
+
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

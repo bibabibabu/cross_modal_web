@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Detection Results | Cross-Modal System</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+</head>
+<body>
+  <main class="page">
+    <section class="card result-container">
+      <h1>Detection Results</h1>
+      <p class="subtitle">Comparison across visible-only, infrared-only, and cross-modal fusion pipelines</p>
+
+      <div class="source-grid">
+        <article class="result-card">
+          <h3>Uploaded RGB Image</h3>
+          <img src="{{ original_rgb }}" alt="Uploaded RGB image" />
+        </article>
+        <article class="result-card">
+          <h3>Uploaded Infrared Image</h3>
+          <img src="{{ original_ir }}" alt="Uploaded infrared image" />
+        </article>
+      </div>
+
+      <div class="result-grid three-col">
+        <article class="result-card">
+          <h3>RGB Detection</h3>
+          <img src="{{ rgb_result }}" alt="RGB detection result" />
+          <p><strong>Inference Time:</strong> {{ timings.rgb }}</p>
+          <p><strong>Status:</strong> {{ statuses.rgb }}</p>
+        </article>
+
+        <article class="result-card">
+          <h3>IR Detection</h3>
+          <img src="{{ ir_result }}" alt="IR detection result" />
+          <p><strong>Inference Time:</strong> {{ timings.ir }}</p>
+          <p><strong>Status:</strong> {{ statuses.ir }}</p>
+        </article>
+
+        <article class="result-card">
+          <h3>Fusion Detection</h3>
+          <img src="{{ fusion_result }}" alt="Fusion detection result" />
+          <p><strong>Inference Time:</strong> {{ timings.fusion }}</p>
+          <p><strong>Status:</strong> {{ statuses.fusion }}</p>
+        </article>
+      </div>
+
+      <div class="actions">
+        <a href="{{ url_for('index') }}" class="btn-secondary">← Back to Upload</a>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
