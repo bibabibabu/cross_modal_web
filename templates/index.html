@@ -1,16 +1,17 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Cross-Modal Visible-Infrared Object Detection System</title>
+  <title>跨模态 RGB-IR 目标检测系统</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
 </head>
 <body>
-  <main class="page">
-    <section class="hero card">
-      <h1>Cross-Modal Visible-Infrared Object Detection System</h1>
-      <p class="subtitle">Undergraduate Thesis Demonstration Platform for RGB, Infrared, and Fusion-Based Detection</p>
+  <main class="shell">
+    <section class="glass-panel hero-panel">
+      <div class="eyebrow">CROSS-MODAL VISUAL SYSTEM</div>
+      <h1>跨模态 RGB-IR 目标检测系统</h1>
+      <p class="subtitle">基于 Flask 的本科毕业论文演示平台</p>
 
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
@@ -22,37 +23,129 @@
         {% endif %}
       {% endwith %}
 
-      <form id="detect-form" class="upload-form" method="post" action="{{ url_for('detect') }}" enctype="multipart/form-data">
-        <div class="upload-grid">
-          <div class="upload-card">
-            <h3>Visible RGB Image</h3>
-            <label class="upload-box" for="rgb_image">
-              <input type="file" id="rgb_image" name="rgb_image" accept="image/*" required />
-              <span>Select RGB image</span>
-            </label>
-            <img id="rgb-preview" class="preview" alt="RGB preview" />
-          </div>
+      <div class="info-grid">
+        <article class="mini-card">
+          <h3>对比逻辑</h3>
+          <p>RGB 与 IR 使用同一个单模态模型做对照，融合分支使用单独模型，让“融合是否更优”能够被直观展示出来。</p>
+        </article>
+        <article class="mini-card warm">
+          <h3>模型接入方式</h3>
+          <p>系统会自动扫描 <code>models/</code> 下的权重，也支持手动填写项目内相对路径。当前共扫描到 <strong>{{ model_count }}</strong> 个候选权重。</p>
+        </article>
+      </div>
 
-          <div class="upload-card">
-            <h3>Infrared Image</h3>
-            <label class="upload-box" for="ir_image">
-              <input type="file" id="ir_image" name="ir_image" accept="image/*" required />
-              <span>Select IR image</span>
+      <form id="detect-form" class="upload-form" method="post" action="{{ url_for('detect') }}" enctype="multipart/form-data">
+        <div class="main-grid">
+          <article class="upload-card">
+            <div class="card-title-row">
+              <h2>RGB 图像</h2>
+              <span class="pill blue">可见光</span>
+            </div>
+            <p>上传论文样例中的可见光图像，用于单模态与融合分支共同对比。</p>
+            <label class="drop-zone" for="rgb_image">
+              <input type="file" id="rgb_image" name="rgb_image" accept=".jpg,.jpeg,.png,.bmp,.tif,.tiff,image/*" required />
+              <span class="drop-title">选择 RGB 图像</span>
+              <span class="file-name" id="rgb-file-name">未选择文件</span>
             </label>
-            <img id="ir-preview" class="preview" alt="Infrared preview" />
-          </div>
+            <img id="rgb-preview" class="preview" alt="RGB 图像预览" />
+          </article>
+
+          <article class="upload-card">
+            <div class="card-title-row">
+              <h2>IR 图像</h2>
+              <span class="pill green">红外</span>
+            </div>
+            <p>上传与 RGB 对应的红外图像；若为彩色图，后端会自动转为灰度。</p>
+            <label class="drop-zone" for="ir_image">
+              <input type="file" id="ir_image" name="ir_image" accept=".jpg,.jpeg,.png,.bmp,.tif,.tiff,image/*" required />
+              <span class="drop-title">选择 IR 图像</span>
+              <span class="file-name" id="ir-file-name">未选择文件</span>
+            </label>
+            <img id="ir-preview" class="preview" alt="IR 图像预览" />
+          </article>
+
+          <article class="upload-card">
+            <div class="card-title-row">
+              <h2>单模态模型</h2>
+              <span class="pill blue-soft">RGB + IR 共用</span>
+            </div>
+            <p>将 RGB 和 IR 的对照都放在同一个模型上，比较更干净。</p>
+            <label class="field-label" for="single_model_select">从扫描结果中选择</label>
+            <select id="single_model_select" name="single_model_select">
+              <option value="">暂不选择，先验证网页流程</option>
+              {% for model in single_models %}
+                <option value="{{ model.path }}">{{ model.path }}</option>
+              {% endfor %}
+            </select>
+            <label class="field-label" for="single_model_manual">或手动填写项目内相对路径</label>
+            <input id="single_model_manual" name="single_model_manual" type="text" placeholder="例如 models/single/best.pt" />
+            <small>手动填写优先级高于下拉选择。</small>
+          </article>
+
+          <article class="upload-card">
+            <div class="card-title-row">
+              <h2>融合模型</h2>
+              <span class="pill orange">独立模型</span>
+            </div>
+            <p>这里放 RGB-IR 融合模型，用来证明跨模态互补的视觉效果。</p>
+            <label class="field-label" for="fusion_model_select">从扫描结果中选择</label>
+            <select id="fusion_model_select" name="fusion_model_select">
+              <option value="">暂不选择，先验证网页流程</option>
+              {% for model in fusion_models %}
+                <option value="{{ model.path }}">{{ model.path }}</option>
+              {% endfor %}
+            </select>
+            <label class="field-label" for="fusion_model_manual">或手动填写项目内相对路径</label>
+            <input id="fusion_model_manual" name="fusion_model_manual" type="text" placeholder="例如 models/fusion/best.pt" />
+          </article>
         </div>
 
-        <button type="submit" class="btn-primary" id="submit-btn">Start Detection</button>
+        <section class="model-scan glass-subpanel">
+          <div class="section-heading">
+            <h2>已扫描到的模型文件</h2>
+            <span>{{ model_count }} 个</span>
+          </div>
+          <div class="scan-grid">
+            <article>
+              <h3>single 目录</h3>
+              <p>扫描路径：<code>models/single/</code></p>
+              <div class="chips">
+                {% for model in single_models %}
+                  <span>{{ model.path }}</span>
+                {% else %}
+                  <em>暂无 .pt/.pth 权重</em>
+                {% endfor %}
+              </div>
+            </article>
+            <article>
+              <h3>fusion 目录</h3>
+              <p>扫描路径：<code>models/fusion/</code></p>
+              <div class="chips">
+                {% for model in fusion_models %}
+                  <span>{{ model.path }}</span>
+                {% else %}
+                  <em>暂无 .pt/.pth 权重</em>
+                {% endfor %}
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <div class="process-grid">
+          <div><strong>样本选择</strong><span>优先选夜间、遮挡、低对比度样本。</span></div>
+          <div><strong>检测结果</strong><span>展示 RGB、IR、Fusion 三路结果图。</span></div>
+          <div><strong>页面结论性质</strong><span>生成启发式可视化结论，辅助论文答辩展示。</span></div>
+        </div>
+
+        <button type="submit" class="btn-primary" id="submit-btn">开始检测并生成对比</button>
       </form>
 
       <div class="loading" id="loading-indicator" aria-live="polite">
         <div class="spinner"></div>
-        <span>Running detection pipelines, please wait...</span>
+        <span>正在执行 RGB、IR 与融合三路推理，请稍候...</span>
       </div>
     </section>
   </main>
-
   <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 </html>
