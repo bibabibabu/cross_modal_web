@@ -1,53 +1,131 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Detection Results | Cross-Modal System</title>
+  <title>检测结果与融合优势分析</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
 </head>
 <body>
-  <main class="page">
-    <section class="card result-container">
-      <h1>Detection Results</h1>
-      <p class="subtitle">Comparison across visible-only, infrared-only, and cross-modal fusion pipelines</p>
+  <main class="shell">
+    <section class="glass-panel result-panel">
+      <div class="eyebrow">QUALITATIVE COMPARISON</div>
+      <h1>检测结果与融合优势分析</h1>
+      <p class="subtitle wide">这页不只是放三张结果图，而是把“融合为什么可能更好”拆成可解释的指标与观察点，让论文答辩展示更直观。</p>
+
+      <section class="analysis-banner">
+        <h2>{{ advantage_headline }}</h2>
+        <p>这是无标注条件下的启发式可视化对比，适合论文演示中的定性分析，不替代 mAP、Recall、Precision 等正式评测指标。</p>
+      </section>
+
+      <div class="config-grid">
+        <article class="mini-card">
+          <h3>本次模型配置</h3>
+          <p><strong>单模态模型：</strong>{{ single_model_display }}</p>
+          <p><strong>融合模型：</strong>{{ fusion_model_display }}</p>
+        </article>
+        <article class="mini-card">
+          <h3>结果分析</h3>
+          <p>先看单模态是否漏检，再看融合是否补上目标、提高置信度，最后看目标框是否更集中在真实目标区域。</p>
+        </article>
+      </div>
 
       <div class="source-grid">
-        <article class="result-card">
-          <h3>Uploaded RGB Image</h3>
-          <img src="{{ original_rgb }}" alt="Uploaded RGB image" />
+        <article class="result-card source-card">
+          <h2>原始 RGB 图像</h2>
+          <img src="{{ original_rgb }}" alt="原始 RGB 图像" />
         </article>
-        <article class="result-card">
-          <h3>Uploaded Infrared Image</h3>
-          <img src="{{ original_ir }}" alt="Uploaded infrared image" />
-        </article>
-      </div>
-
-      <div class="result-grid three-col">
-        <article class="result-card">
-          <h3>RGB Detection</h3>
-          <img src="{{ rgb_result }}" alt="RGB detection result" />
-          <p><strong>Inference Time:</strong> {{ timings.rgb }}</p>
-          <p><strong>Status:</strong> {{ statuses.rgb }}</p>
-        </article>
-
-        <article class="result-card">
-          <h3>IR Detection</h3>
-          <img src="{{ ir_result }}" alt="IR detection result" />
-          <p><strong>Inference Time:</strong> {{ timings.ir }}</p>
-          <p><strong>Status:</strong> {{ statuses.ir }}</p>
-        </article>
-
-        <article class="result-card">
-          <h3>Fusion Detection</h3>
-          <img src="{{ fusion_result }}" alt="Fusion detection result" />
-          <p><strong>Inference Time:</strong> {{ timings.fusion }}</p>
-          <p><strong>Status:</strong> {{ statuses.fusion }}</p>
+        <article class="result-card source-card">
+          <h2>原始 IR 图像</h2>
+          <img src="{{ original_ir }}" alt="原始 IR 图像" />
         </article>
       </div>
+
+      <div class="branch-grid">
+        {% set branch_meta = {
+          'rgb': ('RGB 单模态检测', '仅使用可见光图像输入。', 'blue-top'),
+          'ir': ('IR 单模态检测', '使用同一单模态模型，对红外图像单独检测。', 'green-top'),
+          'fusion': ('融合检测', '同时利用 RGB 与 IR 信息，突出跨模态互补性。', 'orange-top')
+        } %}
+        {% for branch in ['rgb', 'ir', 'fusion'] %}
+          {% set item = results[branch] %}
+          {% set meta = branch_meta[branch] %}
+          <article class="result-card branch-card {{ meta[2] }}">
+            <div class="card-title-row">
+              <h2>{{ meta[0] }}</h2>
+              <span class="pill green">{{ item.status }}</span>
+            </div>
+            <p>{{ meta[1] }}</p>
+            <img src="{{ result_images[branch] }}" alt="{{ meta[0] }}结果" />
+            <div class="metric-pills">
+              <span>目标 {{ item.summary.count }}</span>
+              <span>均值 {{ item.summary.avg_confidence_text }}</span>
+              <span>峰值 {{ item.summary.max_confidence_text }}</span>
+              <span>覆盖 {{ item.summary.coverage_text }}</span>
+            </div>
+            <div class="details">
+              <p><strong>模型路径：</strong>{{ item.model_path }}</p>
+              <p><strong>推理后端：</strong>{{ item.backend }}</p>
+              <p><strong>推理耗时：</strong>{{ item.time_text }}</p>
+            </div>
+            <div class="top-list">
+              <strong>高置信度目标</strong>
+              <div class="chips small">
+                {% for target in item.summary.top_items %}
+                  <span>{{ target.label }} {{ '%.2f'|format(target.confidence) }}</span>
+                {% else %}
+                  <em>暂无检测目标</em>
+                {% endfor %}
+              </div>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+
+      <section class="table-card">
+        <h2>启发式指标总览</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>分支</th>
+                <th>状态</th>
+                <th>目标数</th>
+                <th>平均置信度</th>
+                <th>最高置信度</th>
+                <th>覆盖率</th>
+                <th>耗时</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for branch, label in [('rgb', 'RGB 单模态检测'), ('ir', 'IR 单模态检测'), ('fusion', '融合检测')] %}
+                {% set item = results[branch] %}
+                <tr>
+                  <td>{{ label }}</td>
+                  <td>{{ item.status }}</td>
+                  <td>{{ item.summary.count }}</td>
+                  <td>{{ item.summary.avg_confidence_text }}</td>
+                  <td>{{ item.summary.max_confidence_text }}</td>
+                  <td>{{ item.summary.coverage_text }}</td>
+                  <td>{{ item.time_text }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="observations table-card">
+        <h2>自动生成的对比观察点</h2>
+        <ul>
+          {% for observation in observations %}
+            <li>{{ observation }}</li>
+          {% endfor %}
+        </ul>
+      </section>
 
       <div class="actions">
-        <a href="{{ url_for('index') }}" class="btn-secondary">← Back to Upload</a>
+        <a href="{{ url_for('index') }}" class="btn-secondary">返回首页继续测试</a>
       </div>
     </section>
   </main>
